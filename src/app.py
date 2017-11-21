@@ -1,18 +1,39 @@
 from neo4j.v1 import GraphDatabase
 import json
 from classes import *
+import sys
 
 with open('config.json') as json_data_file:
     cfg = json.load(json_data_file)
 
-print(cfg)
+#print(cfg)
 
 uri = "bolt://"+cfg['database']['domain']+":7687"
 driver = GraphDatabase.driver(uri, auth=(cfg['database']['username'], cfg['database']['password']))
 
-game = "csgo"
-teamLocalSlug = "g2-esports"
-teamVisitorSlug = "fnatic"
+teamSlugs = {
+    "Team Secret":"team-secret",
+    "compLexity":"complexity-gaming",
+    "Vici Gaming":"vici-gaming",
+    "Mineski":"mineski"
+}
+
+
+#game = sys.argv[1] #lol, dota2 ,csgo
+#teamLocalSlug = teamSlugs[sys.argv[2]]
+#teamVisitorSlug = teamSlugs[sys.argv[3]]
+
+game = "dota2" #lol, dota2 ,csgo
+if sys.argv[2] in teamSlugs:
+    teamLocalSlug = teamSlugs[sys.argv[2]]
+else:
+    exit("No tenemos el slug de:"+sys.argv[2])
+
+if sys.argv[3] in teamSlugs:
+    teamVisitorSlug = teamSlugs[sys.argv[3]]
+else:
+    exit("No tenemos el slug de: "+sys.argv[3])
+
 
 ###-----------variables---score---------###
 
@@ -220,12 +241,12 @@ elif streakLocal < streakVisitor:
     scores.addVisitor(streakVs)
 
 #lastThreeSeries
-print('seriesVS:')
+#print('seriesVS:')
 seriesVSRaw = getSeriesTeamVsTeam(teamLocalSlug,teamVisitorSlug,game)
 calculateLastThreeSeries(seriesVSRaw)
 
 #lastFiveSeries
-print('seriesLastLocal:')
+#print('seriesLastLocal:')
 seriesLastLocalRaw = getSeriesTeam(teamLocalSlug,game)
 winLocalSeries = calculateLastFiveSeriesLocal(seriesLastLocalRaw)
 if winLocalSeries >= 5:
@@ -237,7 +258,7 @@ elif winLocalSeries >= 3:
 elif winLocalSeries >= 2:
     scores.addLocal(lastFiveSeries2)
 
-print('seriesLastVisitor:')
+#print('seriesLastVisitor:')
 seriesLastVisitorRaw = getSeriesTeam(teamVisitorSlug,game)
 winVisitorSeries = calculateLastFiveSeriesVisitor(seriesLastVisitorRaw)
 if winVisitorSeries >= 5:
@@ -255,12 +276,11 @@ if winLocalSeries > winVisitorSeries:
 elif winLocalSeries < winVisitorSeries:
     scores.addVisitor(lastFiveSeriesVs)
 
-print(scores.getLocal())
-print(scores.getVisitor())
-print(scores.getGlobal())
-print('share '+teamLocalSlug+': ')
-print(scores.getShareLocal())
-print('share '+teamVisitorSlug+': ')
-print(scores.getShareVisitor())
+#print(scores.getLocal())
+#print(scores.getVisitor())
+#print(scores.getGlobal())
+print(teamSlugs[sys.argv[2]]+'('+str(scores.getShareLocal())+'): '+sys.argv[4] + ' vs '+teamSlugs[sys.argv[3]]+'('+str(scores.getShareVisitor())+'): '+sys.argv[5])
+
+
 
 exit()
