@@ -10,9 +10,11 @@ print(cfg)
 uri = "bolt://"+cfg['database']['domain']+":7687"
 driver = GraphDatabase.driver(uri, auth=(cfg['database']['username'], cfg['database']['password']))
 
-game = "csgo"
-teamLocalSlug = "g2-esports"
-teamVisitorSlug = "fnatic"
+game = "dota2"
+teamLocalSlug = "vici-gaming"
+teamVisitorSlug = "mineski"
+
+#MATCH (n:TeamProvider) WHERE n.slug CONTAINS 'telecom' RETURN n.slug LIMIT 25
 
 ###-----------variables---score---------###
 
@@ -104,8 +106,7 @@ def calculateLastThreeSeries(series):
     elif winLocal < winVisitor:
         scores.addVisitor(lastThreeSeriesVs)
 
-def calculateCompareLossTeamVsLocal(slug,serie):
-    otherSlug = serie.getOtherSlug(slug)
+def calculateCompareLossTeamVsLocal(otherSlug):
     series = getSeriesTeamVsTeam(teamVisitorSlug, otherSlug, game)
     for record in series:
         serie = Series(record)
@@ -114,8 +115,7 @@ def calculateCompareLossTeamVsLocal(slug,serie):
         if localScore > visitorScore:
             scores.addVisitor(lastFiveSeriesVsOtherLoss)
 
-def calculateCompareLossTeamVsVisitor(slug,serie):
-    otherSlug = serie.getOtherSlug(slug)
+def calculateCompareLossTeamVsVisitor(otherSlug):
     series = getSeriesTeamVsTeam(teamLocalSlug, otherSlug, game)
     for record in series:
         serie = Series(record)
@@ -130,10 +130,11 @@ def calculateLastFiveSeriesLocal(series):
         serie = Series(record)
         teamScore = serie.getScoreBySlug(teamLocalSlug)
         otherScore = serie.getOtherScore(teamLocalSlug)
+        otherSlug = serie.getOtherSlug(teamLocalSlug)
         if teamScore > otherScore:
             win += 1
         elif teamScore < otherScore:
-            calculateCompareLossTeamVsLocal(teamLocalSlug,serie)
+            calculateCompareLossTeamVsLocal(otherSlug)
 
     return win
 
@@ -144,14 +145,17 @@ def calculateLastFiveSeriesVisitor(series):
         serie = Series(record)
         teamScore = serie.getScoreBySlug(teamVisitorSlug)
         otherScore = serie.getOtherScore(teamVisitorSlug)
+        otherSlug = serie.getOtherSlug(teamVisitorSlug)
         if teamScore > otherScore:
             win += 1
         elif teamScore < otherScore:
-            calculateCompareLossTeamVsVisitor(teamVisitorSlug,serie)
+            calculateCompareLossTeamVsVisitor(otherSlug)
 
     return win
 
 localTeamRaw = getTeamBySlugAndGame(teamLocalSlug, game)
+winrateLocal = 0
+streakLocal = 0
 for record in localTeamRaw:
     team = Team(record['tmp'], json.loads(record['st']['stats']), record['cp'])
     #winrate
@@ -180,6 +184,8 @@ for record in localTeamRaw:
         scores.addLocal(countryKorea)
 
 visitorTeamRaw = getTeamBySlugAndGame(teamVisitorSlug, game)
+winrateVisitor = 0
+streakVisitor = 0
 for record in visitorTeamRaw:
     team = Team(record['tmp'], json.loads(record['st']['stats']), record['cp'])
     # winrate
@@ -255,9 +261,10 @@ if winLocalSeries > winVisitorSeries:
 elif winLocalSeries < winVisitorSeries:
     scores.addVisitor(lastFiveSeriesVs)
 
-print(scores.getLocal())
-print(scores.getVisitor())
-print(scores.getGlobal())
+print('Sobre un máximo de 28')
+print('Local: '+str(scores.getLocal()))
+print('Visitante: '+str(scores.getVisitor()))
+print('Total: '+str(scores.getGlobal()))
 print('share '+teamLocalSlug+': ')
 print(scores.getShareLocal())
 print('share '+teamVisitorSlug+': ')
