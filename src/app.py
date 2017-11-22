@@ -18,17 +18,18 @@ teamSlugs = {
     "Mineski":"mineski"
 }
 
-game = "dota2" #lol, dota2 ,csgo
+game = sys.argv[1] #lol, dota2 ,csgo
 
-if sys.argv[2] in teamSlugs:
-    teamLocalSlug = teamSlugs[sys.argv[2]]
-else:
-    exit("No tenemos el slug de:"+sys.argv[2])
 
-if sys.argv[3] in teamSlugs:
-    teamVisitorSlug = teamSlugs[sys.argv[3]]
-else:
-    exit("No tenemos el slug de: "+sys.argv[3])
+#if sys.argv[2] in teamSlugs:
+#    teamLocalSlug = teamSlugs[sys.argv[2]]
+#else:
+    #exit("No tenemos el slug de:"+sys.argv[2])
+
+#if sys.argv[3] in teamSlugs:
+#    teamVisitorSlug = teamSlugs[sys.argv[3]]
+#else:
+    #exit("No tenemos el slug de: "+sys.argv[3])
 
 #MATCH (n:TeamProvider) WHERE n.slug CONTAINS 'telecom' RETURN n.slug LIMIT 25
 
@@ -65,6 +66,25 @@ rosterNotChange = 3
 
 ###-------------------------------------###
 
+def getTeamSlugByNameAndGame(name, game):
+    query = "MATCH (tm:Team)-[:PLAYS]->(g:Game)<-[:BELONGS]-(gp:GameProvider{slug:{game}}) \
+                MATCH (tm)<-[:BELONGS]-(tmp:TeamProvider) \
+                WHERE tmp.name = {name} \
+                RETURN tmp.slug"
+    with driver.session() as session:
+        with session.begin_transaction() as tx:
+            for record in tx.run(query, name=name, game=game):
+                return record["tmp.slug"]
+            return ""
+
+
+def getTEST(game):
+    query = "MATCH (tm:Team)-[:PLAYS]->(g:Game)<-[:BELONGS]-(gp:GameProvider{slug:{game}}) \
+                MATCH (tm)<-[:BELONGS]-(tmp:TeamProvider) \
+                RETURN tmp.slug,tmp.name"
+    with driver.session() as session:
+        with session.begin_transaction() as tx:
+            return tx.run(query, game=game)
 
 def getTeamBySlugAndGame(slug, game):
     query = "MATCH (tm:Team)-[:PLAYS]->(g:Game)<-[:BELONGS]-(gp:GameProvider{slug:{game}}) \
@@ -168,6 +188,21 @@ def calculateLastFiveSeriesVisitor(series):
             calculateCompareLossTeamVsVisitor(otherSlug)
 
     return win
+
+teamLocalSlug = getTeamSlugByNameAndGame(sys.argv[2],game)
+teamVisitorSlug = getTeamSlugByNameAndGame(sys.argv[3],game)
+
+if(teamLocalSlug==""):
+    if sys.argv[2] in teamSlugs:
+        teamLocalSlug = teamSlugs[sys.argv[2]]
+    else:
+        exit("No tenemos "+sys.argv[2])
+
+if(teamVisitorSlug==""):
+    if sys.argv[3] in teamSlugs:
+        teamLocalSlug = teamSlugs[sys.argv[3]]
+    else:
+        exit("No tenemos "+sys.argv[3])
 
 localTeamRaw = getTeamBySlugAndGame(teamLocalSlug, game)
 winrateLocal = 0
@@ -281,7 +316,8 @@ elif winLocalSeries < winVisitorSeries:
 #print(scores.getLocal())
 #print(scores.getVisitor())
 #print(scores.getGlobal())
-print(teamSlugs[sys.argv[2]]+'('+str(scores.getShareLocal())+'): '+sys.argv[4] + ' vs '+teamSlugs[sys.argv[3]]+'('+str(scores.getShareVisitor())+'): '+sys.argv[5])
+#print(teamSlugs[sys.argv[2]]+'('+str(scores.getShareLocal())+'): '+sys.argv[4] + ' vs '+teamSlugs[sys.argv[3]]+'('+str(scores.getShareVisitor())+'): '+sys.argv[5])
+print(sys.argv[2]+'('+str(scores.getShareLocal())+'): '+sys.argv[4] + ' vs '+sys.argv[3]+'('+str(scores.getShareVisitor())+'): '+sys.argv[5])
 
 
 #print('Sobre un máximo de 28')
