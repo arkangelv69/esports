@@ -10,9 +10,9 @@ print(cfg)
 uri = "bolt://"+cfg['database']['domain']+":7687"
 driver = GraphDatabase.driver(uri, auth=(cfg['database']['username'], cfg['database']['password']))
 
-game = "dota2"
-teamLocalSlug = "vici-gaming"
-teamVisitorSlug = "mineski"
+game = "csgo"
+teamLocalSlug = "gambit-esports"
+teamVisitorSlug = "5power-club"
 
 #MATCH (n:TeamProvider) WHERE n.slug CONTAINS 'telecom' RETURN n.slug LIMIT 25
 
@@ -93,18 +93,18 @@ def calculateLastThreeSeries(series):
         visitorScore = serie.getScoreBySlug(teamVisitorSlug)
         if localScore > visitorScore:
             if e == 1:
-                scores.addLocal(lastThreeSeriesFirst)
+                scores.addLocal(lastThreeSeriesFirst,'lastThreeSeriesFirst')
             winLocal += 1
         elif localScore < visitorScore:
             if e == 1:
-                scores.addVisitor(lastThreeSeriesFirst)
+                scores.addVisitor(lastThreeSeriesFirst,'lastThreeSeriesFirst')
             winVisitor += 1
         e += 1
 
     if winLocal > winVisitor:
-        scores.addLocal(lastThreeSeriesVs)
+        scores.addLocal(lastThreeSeriesVs,'lastThreeSeriesVs')
     elif winLocal < winVisitor:
-        scores.addVisitor(lastThreeSeriesVs)
+        scores.addVisitor(lastThreeSeriesVs,'lastThreeSeriesVs')
 
 def calculateCompareLossTeamVsLocal(otherSlug):
     series = getSeriesTeamVsTeam(teamVisitorSlug, otherSlug, game)
@@ -113,7 +113,7 @@ def calculateCompareLossTeamVsLocal(otherSlug):
         localScore = serie.getScoreBySlug(teamVisitorSlug)
         visitorScore = serie.getScoreBySlug(otherSlug)
         if localScore > visitorScore:
-            scores.addVisitor(lastFiveSeriesVsOtherLoss)
+            scores.addVisitor(lastFiveSeriesVsOtherLoss,'lastFiveSeriesVsOtherLoss')
 
 def calculateCompareLossTeamVsVisitor(otherSlug):
     series = getSeriesTeamVsTeam(teamLocalSlug, otherSlug, game)
@@ -122,7 +122,7 @@ def calculateCompareLossTeamVsVisitor(otherSlug):
         localScore = serie.getScoreBySlug(teamLocalSlug)
         visitorScore = serie.getScoreBySlug(otherSlug)
         if localScore > visitorScore:
-            scores.addLocal(lastFiveSeriesVsOtherLoss)
+            scores.addLocal(lastFiveSeriesVsOtherLoss,'lastFiveSeriesVsOtherLoss')
 
 def calculateLastFiveSeriesLocal(series):
     win = 0
@@ -161,27 +161,27 @@ for record in localTeamRaw:
     #winrate
     winrateLocal = team.getWinrate()
     if winrateLocal >= 0.7:
-        scores.addLocal(winrate70)
+        scores.addLocal(winrate70,'winrate70')
     elif winrateLocal >= 0.6:
-        scores.addLocal(winrate60)
+        scores.addLocal(winrate60,'winrate60')
     elif winrateLocal >= 0.5:
-        scores.addLocal(winrate50)
+        scores.addLocal(winrate50,'winrate50')
     #streak
     streakLocal = team.getStreak()
     if streakLocal > 0:
-        scores.addLocal(streakPositive)
+        scores.addLocal(streakPositive,'streakPositive')
     if streakLocal >= 7:
-        scores.addLocal(streak7)
+        scores.addLocal(streak7,'streak7')
     elif streakLocal >= 4:
-        scores.addLocal(streak4)
+        scores.addLocal(streak4,'streak4')
     #country
     shortName = team.getShortNameCountry()
     if shortName == 'US':
-        scores.addLocal(countryEEUU)
+        scores.addLocal(countryEEUU,'countryEEUU')
     elif shortName == 'HK' or shortName == 'CN':
-        scores.addLocal(countryChina)
+        scores.addLocal(countryChina,'countryChina')
     elif shortName == 'KR':
-        scores.addLocal(countryKorea)
+        scores.addLocal(countryKorea,'countryKorea')
 
 visitorTeamRaw = getTeamBySlugAndGame(teamVisitorSlug, game)
 winrateVisitor = 0
@@ -191,39 +191,39 @@ for record in visitorTeamRaw:
     # winrate
     winrateVisitor = team.getWinrate()
     if winrateVisitor >= 0.7:
-        scores.addVisitor(winrate70)
+        scores.addVisitor(winrate70,'winrate70')
     elif winrateVisitor >= 0.6:
-        scores.addVisitor(winrate60)
+        scores.addVisitor(winrate60,'winrate60')
     elif winrateVisitor >= 0.5:
-        scores.addVisitor(winrate50)
+        scores.addVisitor(winrate50,'winrate50')
     # streak
     streakVisitor = team.getStreak()
     if streakVisitor > 0:
-        scores.addVisitor(streakPositive)
+        scores.addVisitor(streakPositive,'streakPositive')
     if streakVisitor >= 7:
-        scores.addVisitor(streak7)
+        scores.addVisitor(streak7,'streak7')
     elif streakVisitor >= 4:
-        scores.addVisitor(streak4)
+        scores.addVisitor(streak4,'streak4')
     # country
     shortName = team.getShortNameCountry()
     if shortName == 'US':
-        scores.addVisitor(countryEEUU)
+        scores.addVisitor(countryEEUU,'countryEEUU')
     elif shortName == 'HK' or shortName == 'CN':
-        scores.addVisitor(countryChina)
+        scores.addVisitor(countryChina,'countryChina')
     elif shortName == 'KR':
-        scores.addVisitor(countryKorea)
+        scores.addVisitor(countryKorea,'countryKorea')
 
 #winrateVs
 if winrateLocal > winrateVisitor:
-    scores.addLocal(winrateVs)
+    scores.addLocal(winrateVs,'winrateVs')
 elif winrateLocal < winrateVisitor:
-    scores.addVisitor(winrateVs)
+    scores.addVisitor(winrateVs,'winrateVs')
 
 #streakVs
 if streakLocal > streakVisitor:
-    scores.addLocal(streakVs)
+    scores.addLocal(streakVs,'streakVs')
 elif streakLocal < streakVisitor:
-    scores.addVisitor(streakVs)
+    scores.addVisitor(streakVs,'streakVs')
 
 #lastThreeSeries
 print('seriesVS:')
@@ -235,31 +235,31 @@ print('seriesLastLocal:')
 seriesLastLocalRaw = getSeriesTeam(teamLocalSlug,game)
 winLocalSeries = calculateLastFiveSeriesLocal(seriesLastLocalRaw)
 if winLocalSeries >= 5:
-    scores.addLocal(lastFiveSeries5)
+    scores.addLocal(lastFiveSeries5,'lastFiveSeries5')
 elif winLocalSeries >= 4:
-    scores.addLocal(lastFiveSeries4)
+    scores.addLocal(lastFiveSeries4,'lastFiveSeries4')
 elif winLocalSeries >= 3:
-    scores.addLocal(lastFiveSeries3)
+    scores.addLocal(lastFiveSeries3,'lastFiveSeries3')
 elif winLocalSeries >= 2:
-    scores.addLocal(lastFiveSeries2)
+    scores.addLocal(lastFiveSeries2,'lastFiveSeries2')
 
 print('seriesLastVisitor:')
 seriesLastVisitorRaw = getSeriesTeam(teamVisitorSlug,game)
 winVisitorSeries = calculateLastFiveSeriesVisitor(seriesLastVisitorRaw)
 if winVisitorSeries >= 5:
-    scores.addVisitor(lastFiveSeries5)
+    scores.addVisitor(lastFiveSeries5,'lastFiveSeries5')
 elif winVisitorSeries >= 4:
-    scores.addVisitor(lastFiveSeries4)
+    scores.addVisitor(lastFiveSeries4,'lastFiveSeries4')
 elif winVisitorSeries >= 3:
-    scores.addVisitor(lastFiveSeries3)
+    scores.addVisitor(lastFiveSeries3,'lastFiveSeries3')
 elif winVisitorSeries >= 2:
-    scores.addVisitor(lastFiveSeries2)
+    scores.addVisitor(lastFiveSeries2,'lastFiveSeries2')
 
 
 if winLocalSeries > winVisitorSeries:
-    scores.addLocal(lastFiveSeriesVs)
+    scores.addLocal(lastFiveSeriesVs,'lastFiveSeriesVs')
 elif winLocalSeries < winVisitorSeries:
-    scores.addVisitor(lastFiveSeriesVs)
+    scores.addVisitor(lastFiveSeriesVs,'lastFiveSeriesVs')
 
 print('Sobre un máximo de 28')
 print('Local: '+str(scores.getLocal()))

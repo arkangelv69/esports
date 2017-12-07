@@ -5,12 +5,14 @@ class Scores:
     scoreLocal = 0
     scoreVisitor = 0
 
-    def addLocal(self,score):
+    def addLocal(self,score,label):
         self.scoreLocal += score
         self.addGlobal(score)
-    def addVisitor(self,score):
+        print('Incremento local de: '+str(score)+' por: '+label)
+    def addVisitor(self,score,label):
         self.scoreVisitor += score
         self.addGlobal(score)
+        print('Incremento visitante de: ' + str(score) + ' por: ' + label)
     def addGlobal(self,score):
         self.scoreGlobal += score
     def getLocal(self):
