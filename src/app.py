@@ -75,7 +75,7 @@ def getTeamSlugByNameAndGame(name, game):
                 RETURN tmp.slug"
     with driver.session() as session:
         with session.begin_transaction() as tx:
-            for record in tx.run(query, name='.*'+name+'.*', game=game):
+            for record in tx.run(query, name='(?i).*'+name+'.*', game=game):
                 return record["tmp.slug"]
             return ""
 
@@ -339,6 +339,7 @@ elif teamLocalShare > teamVisitorShare and scores.getShareLocal() < teamVisitorS
     important = True
 if important:
     file.write('------------IMPORTANTE!!!-------------\n')
+    print(bcolors.OKGREEN +'Detectado un resultado interesante'+ bcolors.ENDC)
 else:
     file.write('-------------------------\n')
 file.write(seriesName+'\n')
@@ -347,4 +348,4 @@ file.write('Visitor: '+teamVisitorSlug+' ('+sys.argv[4]+') --> Share: '+str(scor
 file.write('-------------------------\n')
 file.close()
 
-exit()
+exit(bcolors.OKBLUE +'Serie guardada con exito'+ bcolors.ENDC)
