@@ -27,7 +27,7 @@ def getGameBySeriesName(mapGames, seriesName):
     for name in mapGames:
         if re.search('(.*'+name+'.*)', seriesName):
             return mapGames[name]
-    exit('no existe game para: '+seriesName)
+    exit(bcolors.FAIL +'no existe game para: '+seriesName+bcolors.ENDC)
 
 game = getGameBySeriesName(mapGames,seriesName)
 
@@ -36,6 +36,7 @@ game = getGameBySeriesName(mapGames,seriesName)
 ###-----------variables---score---------###
 
 scores = Scores()
+bcolors = bcolors()
 
 minGlobal = 6
 #winrate
@@ -186,16 +187,16 @@ if sys.argv[2] in mapTeamSlugs:
 else:
     teamLocalSlug = getTeamSlugByNameAndGame(sys.argv[2], game)
 if (teamLocalSlug == ""):
-    exit("No tenemos "+sys.argv[2])
-teamLocalShare = sys.argv[3]
+    exit(bcolors.FAIL +"No tenemos "+sys.argv[2]+bcolors.ENDC)
+teamLocalShare = float(sys.argv[3])
 
 if sys.argv[4] in mapTeamSlugs:
     teamVisitorSlug = mapTeamSlugs[sys.argv[4]]
 else:
     teamVisitorSlug = getTeamSlugByNameAndGame(sys.argv[4], game)
 if (teamVisitorSlug == ""):
-    exit("No tenemos " + sys.argv[4])
-teamVisitorShare = sys.argv[5]
+    exit(bcolors.FAIL +"No tenemos " + sys.argv[4]+bcolors.ENDC)
+teamVisitorShare = float(sys.argv[5])
 
 
 
@@ -324,13 +325,22 @@ print(sys.argv[2]+'('+str(scores.getShareLocal())+'): '+sys.argv[3] + ' vs '+sys
 #print(scores.getShareVisitor())
 
 if scores.getLocal() <= minGlobal :
-    exit("No tenemos suficientes estadísticas sobre la serie")
+    exit(bcolors.FAIL +"No tenemos suficientes estadísticas sobre la serie"+ bcolors.ENDC)
 
 print('Añdadiendo serie al fichero de resultados...')
 
 #file = open("results/results-"+seriesName+"-"+today, "w+")
 file = open("results/results.txt", "a")
-file.write('-------------------------\n')
+
+important = False
+if (teamLocalShare < teamVisitorShare) and scores.getShareVisitor() < teamLocalShare:
+    important = True
+elif teamLocalShare > teamVisitorShare and scores.getShareLocal() < teamVisitorShare:
+    important = True
+if important:
+    file.write('------------IMPORTANTE!!!-------------\n')
+else:
+    file.write('-------------------------\n')
 file.write(seriesName+'\n')
 file.write('Local: '+teamLocalSlug+' ('+sys.argv[2]+') --> Share: '+str(scores.getShareLocal())+': ('+sys.argv[3] + ')\n')
 file.write('Visitor: '+teamVisitorSlug+' ('+sys.argv[4]+') --> Share: '+str(scores.getShareVisitor())+': ('+sys.argv[5]+')\n')
