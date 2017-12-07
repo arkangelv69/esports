@@ -22,8 +22,12 @@ class Scores:
     def getGlobal(self):
         return self.scoreGlobal
     def getShareLocal(self):
+        if self.scoreGlobal == 0:
+            exit('cero puntos obtenidos')
         return 1/(self.scoreLocal/self.scoreGlobal)
     def getShareVisitor(self):
+        if self.scoreGlobal == 0:
+            exit('cero puntos obtenidos')
         return 1/(self.scoreVisitor/self.scoreGlobal)
 
 

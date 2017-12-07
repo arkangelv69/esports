@@ -1,35 +1,35 @@
-from neo4j.v1 import GraphDatabase
 import json
-from classes import *
+import re
 import sys
+import datetime
+
+from classes import *
+from neo4j.v1 import GraphDatabase
 
 with open('config.json') as json_data_file:
     cfg = json.load(json_data_file)
+
+with open('mapTeamSlugs.json') as json_data_map_team_slugs:
+    mapTeamSlugs = json.load(json_data_map_team_slugs)
+
+with open('mapGames.json') as json_data_map_games:
+    mapGames = json.load(json_data_map_games)
 
 #print(cfg)
 
 uri = "bolt://"+cfg['database']['domain']+":7687"
 driver = GraphDatabase.driver(uri, auth=(cfg['database']['username'], cfg['database']['password']))
 
-teamSlugs = {
-    "Team Secret":"team-secret",
-    "compLexity":"complexity-gaming",
-    "Vici Gaming":"vici-gaming",
-    "Mineski":"mineski"
-}
+today = datetime.datetime.today().strftime('%Y-%m-%d')
+seriesName = sys.argv[1]
 
-game = sys.argv[1] #lol, dota2 ,csgo
+def getGameBySeriesName(mapGames, seriesName):
+    for name in mapGames:
+        if re.search('(.*'+name+'.*)', seriesName):
+            return mapGames[name]
+    exit('no existe game para: '+seriesName)
 
-
-#if sys.argv[2] in teamSlugs:
-#    teamLocalSlug = teamSlugs[sys.argv[2]]
-#else:
-    #exit("No tenemos el slug de:"+sys.argv[2])
-
-#if sys.argv[3] in teamSlugs:
-#    teamVisitorSlug = teamSlugs[sys.argv[3]]
-#else:
-    #exit("No tenemos el slug de: "+sys.argv[3])
+game = getGameBySeriesName(mapGames,seriesName)
 
 #MATCH (n:TeamProvider) WHERE n.slug CONTAINS 'telecom' RETURN n.slug LIMIT 25
 
@@ -37,6 +37,7 @@ game = sys.argv[1] #lol, dota2 ,csgo
 
 scores = Scores()
 
+minGlobal = 6
 #winrate
 winrate50 = 1
 winrate60 = 2
@@ -69,22 +70,13 @@ rosterNotChange = 3
 def getTeamSlugByNameAndGame(name, game):
     query = "MATCH (tm:Team)-[:PLAYS]->(g:Game)<-[:BELONGS]-(gp:GameProvider{slug:{game}}) \
                 MATCH (tm)<-[:BELONGS]-(tmp:TeamProvider) \
-                WHERE tmp.name = {name} \
+                WHERE tmp.name =~ {name} \
                 RETURN tmp.slug"
     with driver.session() as session:
         with session.begin_transaction() as tx:
-            for record in tx.run(query, name=name, game=game):
+            for record in tx.run(query, name='.*'+name+'.*', game=game):
                 return record["tmp.slug"]
             return ""
-
-
-def getTEST(game):
-    query = "MATCH (tm:Team)-[:PLAYS]->(g:Game)<-[:BELONGS]-(gp:GameProvider{slug:{game}}) \
-                MATCH (tm)<-[:BELONGS]-(tmp:TeamProvider) \
-                RETURN tmp.slug,tmp.name"
-    with driver.session() as session:
-        with session.begin_transaction() as tx:
-            return tx.run(query, game=game)
 
 def getTeamBySlugAndGame(slug, game):
     query = "MATCH (tm:Team)-[:PLAYS]->(g:Game)<-[:BELONGS]-(gp:GameProvider{slug:{game}}) \
@@ -189,20 +181,24 @@ def calculateLastFiveSeriesVisitor(series):
 
     return win
 
-teamLocalSlug = getTeamSlugByNameAndGame(sys.argv[2],game)
-teamVisitorSlug = getTeamSlugByNameAndGame(sys.argv[3],game)
+if sys.argv[2] in mapTeamSlugs:
+    teamLocalSlug = mapTeamSlugs[sys.argv[2]]
+else:
+    teamLocalSlug = getTeamSlugByNameAndGame(sys.argv[2], game)
+if (teamLocalSlug == ""):
+    exit("No tenemos "+sys.argv[2])
+teamLocalShare = sys.argv[3]
 
-if(teamLocalSlug==""):
-    if sys.argv[2] in teamSlugs:
-        teamLocalSlug = teamSlugs[sys.argv[2]]
-    else:
-        exit("No tenemos "+sys.argv[2])
+if sys.argv[4] in mapTeamSlugs:
+    teamVisitorSlug = mapTeamSlugs[sys.argv[4]]
+else:
+    teamVisitorSlug = getTeamSlugByNameAndGame(sys.argv[4], game)
+if (teamVisitorSlug == ""):
+    exit("No tenemos " + sys.argv[4])
+teamVisitorShare = sys.argv[5]
 
-if(teamVisitorSlug==""):
-    if sys.argv[3] in teamSlugs:
-        teamLocalSlug = teamSlugs[sys.argv[3]]
-    else:
-        exit("No tenemos "+sys.argv[3])
+
+
 
 localTeamRaw = getTeamBySlugAndGame(teamLocalSlug, game)
 winrateLocal = 0
@@ -277,12 +273,12 @@ elif streakLocal < streakVisitor:
     scores.addVisitor(streakVs,'streakVs')
 
 #lastThreeSeries
-print('seriesVS:')
+print('Procesando seriesVS...')
 seriesVSRaw = getSeriesTeamVsTeam(teamLocalSlug,teamVisitorSlug,game)
 calculateLastThreeSeries(seriesVSRaw)
 
 #lastFiveSeries
-print('seriesLastLocal:')
+print('Procesando seriesLastLocal...')
 seriesLastLocalRaw = getSeriesTeam(teamLocalSlug,game)
 winLocalSeries = calculateLastFiveSeriesLocal(seriesLastLocalRaw)
 if winLocalSeries >= 5:
@@ -294,7 +290,7 @@ elif winLocalSeries >= 3:
 elif winLocalSeries >= 2:
     scores.addLocal(lastFiveSeries2,'lastFiveSeries2')
 
-print('seriesLastVisitor:')
+print('Procesando seriesLastVisitor...')
 seriesLastVisitorRaw = getSeriesTeam(teamVisitorSlug,game)
 winVisitorSeries = calculateLastFiveSeriesVisitor(seriesLastVisitorRaw)
 if winVisitorSeries >= 5:
@@ -312,13 +308,11 @@ if winLocalSeries > winVisitorSeries:
 elif winLocalSeries < winVisitorSeries:
     scores.addVisitor(lastFiveSeriesVs,'lastFiveSeriesVs')
 
-
 #print(scores.getLocal())
 #print(scores.getVisitor())
 #print(scores.getGlobal())
-#print(teamSlugs[sys.argv[2]]+'('+str(scores.getShareLocal())+'): '+sys.argv[4] + ' vs '+teamSlugs[sys.argv[3]]+'('+str(scores.getShareVisitor())+'): '+sys.argv[5])
-print(sys.argv[2]+'('+str(scores.getShareLocal())+'): '+sys.argv[4] + ' vs '+sys.argv[3]+'('+str(scores.getShareVisitor())+'): '+sys.argv[5])
-
+#print(mapTeamSlugs[sys.argv[2]]+'('+str(scores.getShareLocal())+'): '+sys.argv[4] + ' vs '+mapTeamSlugs[sys.argv[3]]+'('+str(scores.getShareVisitor())+'): '+sys.argv[5])
+print(sys.argv[2]+'('+str(scores.getShareLocal())+'): '+sys.argv[3] + ' vs '+sys.argv[4]+'('+str(scores.getShareVisitor())+'): '+sys.argv[5])
 
 #print('Sobre un máximo de 28')
 #print('Local: '+str(scores.getLocal()))
@@ -329,5 +323,18 @@ print(sys.argv[2]+'('+str(scores.getShareLocal())+'): '+sys.argv[4] + ' vs '+sys
 #print('share '+teamVisitorSlug+': ')
 #print(scores.getShareVisitor())
 
+if scores.getLocal() <= minGlobal :
+    exit("No tenemos suficientes estadísticas sobre la serie")
+
+print('Añdadiendo serie al fichero de resultados...')
+
+#file = open("results/results-"+seriesName+"-"+today, "w+")
+file = open("results/results.txt", "a")
+file.write('-------------------------\n')
+file.write(seriesName+'\n')
+file.write('Local: '+teamLocalSlug+' ('+sys.argv[2]+') --> Share: '+str(scores.getShareLocal())+': ('+sys.argv[3] + ')\n')
+file.write('Visitor: '+teamVisitorSlug+' ('+sys.argv[4]+') --> Share: '+str(scores.getShareVisitor())+': ('+sys.argv[5]+')\n')
+file.write('-------------------------\n')
+file.close()
 
 exit()

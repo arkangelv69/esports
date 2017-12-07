@@ -1,2 +1,5 @@
-config.json
+src/config.json
 .idea
+src/download/downloadedFile.html
+src/results/results.txt
+__pycache__/

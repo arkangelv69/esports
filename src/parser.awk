@@ -1,28 +1,33 @@
 BEGIN{
 y=1;
-#print "anno;tipo;cod_comunidad;cod_provincia;cod_partido;siglas;votos;escannos" > "AUT_F1_T_R.ov"
 FS=":";
 CONVFMT = "%2.2f"
 finish=0
 }
 {
-	col = y % 4
+    #print $2
+	col = y % 5
 	if(col == 1){
-        	local=$2
-        	if(local=="1")
-                	exit "Ya no hay más apuestas"
+        name_serie=$2
 	}
 	if(col == 2){
-                cuota_local=$2
-        }
+	    local=$2
+        if(local=="1")
+            exit "Ya no hay más apuestas"
+
+    }
 	if(col == 3){
-                visitante=$2
-        }
+	    cuota_local=$2
+
+    }
+    if(col == 4){
+        visitante=$2
+    }
 	if(col == 0){
-        	cuota_visitante=$2
-                #print local " ("cuota_local") - "visitante " ("cuota_visitante")"
+	    cuota_visitante=$2
+        print local " ("cuota_local") - "visitante " ("cuota_visitante") -- " name_serie
 		#print "python3 app.py \"dota2\" \""local"\" \""visitante"\""
-		system("python3 app.py \""game"\" \""local"\" \""visitante"\" \""cuota_local"\" \""cuota_visitante"\"")
+	    system("python3 app.py \""name_serie"\" \""local"\" \""cuota_local"\" \""visitante"\" \""cuota_visitante"\"")
 	}
 	y++;
 
